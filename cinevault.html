@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CineVault</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      background: #0a0a0a;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+
+    .movie-card img {
+      transition: transform 0.3s ease;
+    }
+
+    .movie-card:hover img {
+      transform: scale(1.05);
+    }
+
+    .genre-row {
+      scroll-behavior: smooth;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav class="p-4 flex justify-between items-center border-b border-zinc-800 gap-4 flex-wrap">
+    <h1 class="text-xl font-bold tracking-wide">CINEVAULT</h1>
+    <input
+      id="search"
+      placeholder="Search movies..."
+      class="bg-zinc-900 px-3 py-2 rounded outline-none w-full max-w-sm"
+    />
+  </nav>
+
+  <!-- MAIN -->
+  <div id="app" class="p-6 space-y-10"></div>
+
+  <!-- POPUP -->
+  <div id="popup" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-50">
+    <div class="bg-zinc-900 p-6 rounded-xl max-w-4xl w-full relative max-h-[90vh] overflow-y-auto">
+      <button onclick="closePopup()" class="absolute top-3 right-3 text-xl">✕</button>
+
+      <div class="flex flex-col md:flex-row gap-6">
+        <img id="p-img" class="w-52 h-80 object-cover rounded mx-auto md:mx-0" />
+
+        <div>
+          <h2 id="p-title" class="text-2xl font-bold mb-2"></h2>
+          <p id="p-meta" class="text-zinc-400 text-sm mb-3"></p>
+          <p id="p-cast" class="text-sm mb-3"></p>
+          <p id="p-desc" class="text-sm mb-4 leading-6"></p>
+
+          <div class="flex gap-3 flex-wrap">
+            <button class="bg-white text-black px-4 py-2 rounded">Watch</button>
+            <button class="bg-zinc-700 px-4 py-2 rounded">Download</button>
+            <button class="bg-zinc-700 px-4 py-2 rounded">Share</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function posterFallback(title) {
+      return `https://placehold.co/300x450/18181b/ffffff?text=${encodeURIComponent(title)}`;
+    }
+
+    const movies = [
+      {title:"The Conjuring",genres:["horror","supernatural"],year:2013,rating:7.5,cast:["Patrick Wilson","Vera Farmiga"],desc:"Paranormal investigators help a haunted family.",poster:"https://image.tmdb.org/t/p/w500/wVYREutTvI2tmxr6ujrHT704wGF.jpg"},
+      {title:"Hereditary",genres:["horror","psychological"],year:2018,rating:7.3,cast:["Toni Collette"],desc:"A grieving family is haunted by tragic secrets.",poster:"https://image.tmdb.org/t/p/w500/lHV8HHlhwNup2VbpiACtlKzaGIQ.jpg"},
+      {title:"Get Out",genres:["horror","thriller"],year:2017,rating:7.8,cast:["Daniel Kaluuya"],desc:"A disturbing visit to meet the parents.",poster:"https://image.tmdb.org/t/p/w500/tFXcEccSQMf3lfhfXKSU9iRBpa3.jpg"},
+      {title:"A Quiet Place",genres:["horror","sci-fi"],year:2018,rating:7.5,cast:["Emily Blunt"],desc:"Silence is survival.",poster:"https://image.tmdb.org/t/p/w500/nAU74GmpUk7t5iklEp3bufwDq4n.jpg"},
+      {title:"It",genres:["horror"],year:2017,rating:7.3,cast:["Bill Skarsgård"],desc:"A shape-shifting clown terrorizes children.",poster:"https://image.tmdb.org/t/p/w500/9E2y5Q7WlCVNEhP5GiVTjhEhx1o.jpg"},
+      {title:"The Nun",genres:["horror","supernatural"],year:2018,rating:5.3,cast:["Taissa Farmiga"],desc:"A priest and a novice uncover a dark secret.",poster:"https://image.tmdb.org/t/p/w500/sFC1ElvoKGdHJIWRpNB3xWJ9lJA.jpg"},
+      {title:"Insidious",genres:["horror","supernatural"],year:2010,rating:6.8,cast:["Patrick Wilson","Rose Byrne"],desc:"A family fights to save their son from evil spirits.",poster:"https://image.tmdb.org/t/p/w500/7iCKoWmU1eFjA12msN6w0mDHwLw.jpg"},
+      {title:"The Babadook",genres:["horror","psychological"],year:2014,rating:6.8,cast:["Essie Davis"],desc:"A sinister presence takes over a grieving home.",poster:"https://image.tmdb.org/t/p/w500/7s9Au7J8C4gY0DrB6U6i9j4n1Dk.jpg"},
+
+      {title:"Crazy Rich Asians",genres:["rom-com"],year:2018,rating:6.9,cast:["Constance Wu"],desc:"A woman meets her boyfriend's wealthy family.",poster:"https://image.tmdb.org/t/p/w500/1XxL4LJ5WHdrcYcihEZUCgNCpAW.jpg"},
+      {title:"Notting Hill",genres:["rom-com"],year:1999,rating:7.2,cast:["Julia Roberts","Hugh Grant"],desc:"A bookseller falls for a movie star.",poster:"https://image.tmdb.org/t/p/w500/4npuVmKc3U8U6mFfFeR1dG4cUoG.jpg"},
+      {title:"10 Things I Hate About You",genres:["rom-com"],year:1999,rating:7.3,cast:["Heath Ledger","Julia Stiles"],desc:"High school romance chaos.",poster:"https://image.tmdb.org/t/p/w500/uj0H5Hqf7uVog3Jp9g7txG9U5og.jpg"},
+      {title:"To All the Boys I've Loved Before",genres:["rom-com"],year:2018,rating:7.0,cast:["Lana Condor"],desc:"Secret love letters get exposed.",poster:"https://image.tmdb.org/t/p/w500/hKHZhUbIyUA5BeSx9bQ9euzV1qV.jpg"},
+      {title:"The Proposal",genres:["rom-com"],year:2009,rating:6.7,cast:["Sandra Bullock","Ryan Reynolds"],desc:"Fake engagement turns real.",poster:"https://image.tmdb.org/t/p/w500/4s5o8s7M1hA4kUe3dSPBzK7sW4l.jpg"},
+      {title:"Anyone But You",genres:["rom-com"],year:2023,rating:6.2,cast:["Sydney Sweeney","Glen Powell"],desc:"An enemies-to-lovers chaos-filled wedding trip.",poster:"https://image.tmdb.org/t/p/w500/yRt7MGBElkLQOYxJxz3wMfR48bW.jpg"},
+      {title:"Set It Up",genres:["rom-com"],year:2018,rating:6.5,cast:["Zoey Deutch","Glen Powell"],desc:"Two assistants scheme to set up their bosses.",poster:"https://image.tmdb.org/t/p/w500/cbRQVCia0urtv5UGsVFTdqLDIRv.jpg"},
+
+      {title:"Interstellar",genres:["sci-fi","drama"],year:2014,rating:8.7,cast:["Matthew McConaughey","Anne Hathaway"],desc:"Humanity searches for a new home.",poster:"https://image.tmdb.org/t/p/w500/rAiYTfKGqDCRIIqo664sY9XZIvQ.jpg"},
+      {title:"Inception",genres:["sci-fi","thriller"],year:2010,rating:8.8,cast:["Leonardo DiCaprio"],desc:"Dream infiltration.",poster:"https://image.tmdb.org/t/p/w500/edv5CZvWj09upOsy2Y6IwDhK8bt.jpg"},
+      {title:"The Matrix",genres:["sci-fi","action"],year:1999,rating:8.7,cast:["Keanu Reeves"],desc:"Reality is an illusion.",poster:"https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg"},
+      {title:"Blade Runner 2049",genres:["sci-fi"],year:2017,rating:8.0,cast:["Ryan Gosling"],desc:"A replicant discovers secrets.",poster:"https://image.tmdb.org/t/p/w500/gajva2L0rPYkEWjzgFlBXCAVBE5.jpg"},
+      {title:"Arrival",genres:["sci-fi","drama"],year:2016,rating:7.9,cast:["Amy Adams"],desc:"Aliens arrive on Earth.",poster:"https://image.tmdb.org/t/p/w500/x2FJsf1ElAgr63Y3PNPtJrcmpoe.jpg"},
+      {title:"Dune",genres:["sci-fi","action"],year:2021,rating:8.0,cast:["Timothée Chalamet","Zendaya"],desc:"A noble family becomes entangled in a war for a dangerous planet.",poster:"https://image.tmdb.org/t/p/w500/d5NXSklXo0qyIYkgV94XAgMIckC.jpg"},
+      {title:"Dune: Part Two",genres:["sci-fi","action"],year:2024,rating:8.6,cast:["Timothée Chalamet","Zendaya"],desc:"Paul Atreides unites with the Fremen for revenge and destiny.",poster:"https://image.tmdb.org/t/p/w500/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg"},
+
+      {title:"The Notebook",genres:["romantic","drama"],year:2004,rating:7.8,cast:["Ryan Gosling","Rachel McAdams"],desc:"Enduring love story.",poster:"https://image.tmdb.org/t/p/w500/qom1SZSENdmHFNZBXbtJAU0WTlC.jpg"},
+      {title:"Titanic",genres:["romantic","drama"],year:1997,rating:7.9,cast:["Leonardo DiCaprio","Kate Winslet"],desc:"Love on a doomed ship.",poster:"https://image.tmdb.org/t/p/w500/9xjZS2rlVxm8SFx8kPC3aIGCOYQ.jpg"},
+      {title:"La La Land",genres:["romantic","musical"],year:2016,rating:8.0,cast:["Emma Stone","Ryan Gosling"],desc:"Dreams and romance.",poster:"https://image.tmdb.org/t/p/w500/uDO8zWDhfWwoFdKS4fzkUJt0Rf0.jpg"},
+      {title:"Before Sunrise",genres:["romantic"],year:1995,rating:8.1,cast:["Ethan Hawke","Julie Delpy"],desc:"A night in Vienna.",poster:"https://image.tmdb.org/t/p/w500/kf1J7zZgE6k9r9P1s5r5m9s1n1.jpg"},
+      {title:"Pride & Prejudice",genres:["romantic","drama"],year:2005,rating:7.8,cast:["Keira Knightley"],desc:"Classic romance.",poster:"https://image.tmdb.org/t/p/w500/sGjIvtVvTlWnia2zfJfHz81pZ9Q.jpg"},
+      {title:"Me Before You",genres:["romantic","drama"],year:2016,rating:7.4,cast:["Emilia Clarke","Sam Claflin"],desc:"A moving love story between two very different people.",poster:"https://image.tmdb.org/t/p/w500/Ia3dzj5LnCj1ZBdlVeJrbKJQxG.jpg"},
+      {title:"About Time",genres:["romantic","drama"],year:2013,rating:7.8,cast:["Domhnall Gleeson","Rachel McAdams"],desc:"A young man discovers he can time travel and use it to improve his life and love.",poster:"https://image.tmdb.org/t/p/w500/iMwxH08i3I8fL4J39qX4zsjxZpG.jpg"},
+
+      {title:"Superbad",genres:["comedy"],year:2007,rating:7.6,cast:["Jonah Hill","Michael Cera"],desc:"Teen chaos.",poster:"https://image.tmdb.org/t/p/w500/ek8e8txUyUwd2BNqj6lFEerJfbq.jpg"},
+      {title:"The Hangover",genres:["comedy"],year:2009,rating:7.7,cast:["Bradley Cooper"],desc:"Wild Vegas trip.",poster:"https://image.tmdb.org/t/p/w500/uluhlXubGu1VxU63X9VHCLWDAYP.jpg"},
+      {title:"Mean Girls",genres:["comedy"],year:2004,rating:7.0,cast:["Lindsay Lohan","Rachel McAdams"],desc:"High school drama.",poster:"https://image.tmdb.org/t/p/w500/bk0fG1j5CSX2g8ZlR3sW1dG4cUoG.jpg"},
+      {title:"Step Brothers",genres:["comedy"],year:2008,rating:6.9,cast:["Will Ferrell","John C. Reilly"],desc:"Two immature adults are forced to live together.",poster:posterFallback("Step Brothers")},
+      {title:"Bridesmaids",genres:["comedy"],year:2011,rating:6.8,cast:["Kristen Wiig","Maya Rudolph"],desc:"Wedding chaos.",poster:posterFallback("Bridesmaids")},
+      {title:"Barbie",genres:["comedy","fantasy"],year:2023,rating:7.0,cast:["Margot Robbie","Ryan Gosling"],desc:"Barbie enters the real world and discovers herself.",poster:"https://image.tmdb.org/t/p/w500/iuFNMS8U5cb6xfzi51Dbkovj7vM.jpg"},
+      {title:"21 Jump Street",genres:["comedy","action"],year:2012,rating:7.2,cast:["Jonah Hill","Channing Tatum"],desc:"Two cops go undercover in high school.",poster:"https://image.tmdb.org/t/p/w500/8v3Sqv9UcIUC4ebmpKWROqPBINZ.jpg"},
+
+      {title:"Gone Girl",genres:["thriller","drama"],year:2014,rating:8.1,cast:["Ben Affleck","Rosamund Pike"],desc:"A missing wife mystery.",poster:"https://image.tmdb.org/t/p/w500/gdiLTof3rbPDAmPaCf4g6op46bj.jpg"},
+      {title:"Se7en",genres:["thriller","crime"],year:1995,rating:8.6,cast:["Brad Pitt","Morgan Freeman"],desc:"Seven deadly sins.",poster:"https://image.tmdb.org/t/p/w500/6yoghtyTpznpBik8EngEmJskVUO.jpg"},
+      {title:"Shutter Island",genres:["thriller","mystery"],year:2010,rating:8.2,cast:["Leonardo DiCaprio"],desc:"Psychological mystery.",poster:"https://image.tmdb.org/t/p/w500/4GDy0PHYX3VRXUtwK5ysFbg3kEx.jpg"},
+      {title:"Prisoners",genres:["thriller"],year:2013,rating:8.1,cast:["Hugh Jackman","Jake Gyllenhaal"],desc:"A father takes matters into his own hands after a kidnapping.",poster:posterFallback("Prisoners")},
+      {title:"The Girl with the Dragon Tattoo",genres:["thriller"],year:2011,rating:7.8,cast:["Rooney Mara","Daniel Craig"],desc:"Dark investigation.",poster:posterFallback("The Girl with the Dragon Tattoo")},
+      {title:"Nightcrawler",genres:["thriller","crime"],year:2014,rating:7.8,cast:["Jake Gyllenhaal"],desc:"A man dives into the world of crime journalism.",poster:"https://image.tmdb.org/t/p/w500/j9HrX8f7GbZQm1BrBiR40uFQZSb.jpg"},
+      {title:"The Silence of the Lambs",genres:["thriller","crime"],year:1991,rating:8.6,cast:["Jodie Foster","Anthony Hopkins"],desc:"An FBI trainee seeks help from a brilliant serial killer.",poster:"https://image.tmdb.org/t/p/w500/uS9m8OBk1A8eM9I042bx8XXpqAq.jpg"},
+
+      {title:"Mad Max: Fury Road",genres:["action"],year:2015,rating:8.1,cast:["Tom Hardy","Charlize Theron"],desc:"Post-apocalyptic chase.",poster:"https://image.tmdb.org/t/p/w500/8tZYtuWezp8JbcsvHYO0O46tFbo.jpg"},
+      {title:"John Wick",genres:["action"],year:2014,rating:7.4,cast:["Keanu Reeves"],desc:"Revenge assassin.",poster:"https://image.tmdb.org/t/p/w500/fZPSd91yGE9fCcCe6OoQr6E3Bev.jpg"},
+      {title:"Gladiator",genres:["action","drama"],year:2000,rating:8.5,cast:["Russell Crowe"],desc:"Roman revenge.",poster:"https://image.tmdb.org/t/p/w500/ty8TGRuvJLPUmAR1H1nRIsgwvim.jpg"},
+      {title:"The Dark Knight",genres:["action","crime"],year:2008,rating:9.0,cast:["Christian Bale","Heath Ledger"],desc:"Batman vs Joker.",poster:"https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg"},
+      {title:"Avengers: Endgame",genres:["action","superhero"],year:2019,rating:8.4,cast:["Robert Downey Jr.","Chris Evans"],desc:"Final battle.",poster:"https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg"},
+      {title:"Top Gun: Maverick",genres:["action","drama"],year:2022,rating:8.3,cast:["Tom Cruise"],desc:"Maverick trains a new generation of elite pilots.",poster:"https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg"},
+      {title:"Mission: Impossible - Fallout",genres:["action","thriller"],year:2018,rating:7.7,cast:["Tom Cruise"],desc:"Ethan Hunt races to stop a global catastrophe.",poster:"https://image.tmdb.org/t/p/w500/AkJQpZp9WoNdj7pLYSj1L0RcMMN.jpg"},
+
+      {title:"The Shawshank Redemption",genres:["drama"],year:1994,rating:9.3,cast:["Tim Robbins","Morgan Freeman"],desc:"Hope and freedom.",poster:"https://image.tmdb.org/t/p/w500/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg"},
+      {title:"Forrest Gump",genres:["drama"],year:1994,rating:8.8,cast:["Tom Hanks"],desc:"Life journey.",poster:"https://image.tmdb.org/t/p/w500/clolk7rB5lAjs41SD0Vt6IXYLMm.jpg"},
+      {title:"Whiplash",genres:["drama"],year:2014,rating:8.5,cast:["Miles Teller","J.K. Simmons"],desc:"Music obsession.",poster:"https://image.tmdb.org/t/p/w500/lIv1QinFqz4dlp5U4lQ6HaiskOZ.jpg"},
+      {title:"The Social Network",genres:["drama"],year:2010,rating:7.7,cast:["Jesse Eisenberg"],desc:"Facebook story.",poster:"https://image.tmdb.org/t/p/w500/n0ybibhJtQ5icDqTp8eRytcIHJx.jpg"},
+      {title:"Fight Club",genres:["drama"],year:1999,rating:8.8,cast:["Brad Pitt","Edward Norton"],desc:"Underground club.",poster:"https://image.tmdb.org/t/p/w500/bptfVGEQuv6vDTIMVCHjJ9Dz8PX.jpg"},
+      {title:"Oppenheimer",genres:["drama","history"],year:2023,rating:8.4,cast:["Cillian Murphy","Robert Downey Jr."],desc:"The story of J. Robert Oppenheimer and the atomic bomb.",poster:"https://image.tmdb.org/t/p/w500/8ZTVqvKDQ8emSGUEMjsS4yHAwrp.jpg"},
+      {title:"The Pursuit of Happyness",genres:["drama"],year:2006,rating:8.0,cast:["Will Smith"],desc:"A struggling salesman fights for a better future for his son.",poster:"https://image.tmdb.org/t/p/w500/lBYOKAMcxIvuk9s9hMuecB9dPBV.jpg"},
+
+      {title:"Spider-Man: Into the Spider-Verse",genres:["animation","action"],year:2018,rating:8.4,cast:["Shameik Moore"],desc:"Multiverse adventure.",poster:"https://image.tmdb.org/t/p/w500/iiZZdoQBEYBv6id8su7ImL0oCbD.jpg"},
+      {title:"Frozen",genres:["animation","musical"],year:2013,rating:7.4,cast:["Kristen Bell","Idina Menzel"],desc:"Sisterhood and magic.",poster:posterFallback("Frozen")},
+      {title:"The Lion King",genres:["animation","drama"],year:1994,rating:8.5,cast:["Matthew Broderick"],desc:"Circle of life.",poster:"https://image.tmdb.org/t/p/w500/sKCr78MXSLixwmZ8DyJLrpMsd15.jpg"},
+      {title:"Coco",genres:["animation","drama"],year:2017,rating:8.4,cast:["Anthony Gonzalez"],desc:"A boy journeys to the Land of the Dead.",poster:"https://image.tmdb.org/t/p/w500/eKi8dIrr8voobbaGzDpe8w0PVbC.jpg"},
+      {title:"Your Name",genres:["animation","romantic"],year:2016,rating:8.4,cast:["Ryunosuke Kamiki"],desc:"Two teenagers mysteriously begin to swap bodies.",poster:"https://image.tmdb.org/t/p/w500/q719jXXEzOoYaps6babgKnONONX.jpg"} ,
+
+      {title:"Harry Potter and the Sorcerer's Stone",genres:["fantasy"],year:2001,rating:7.6,cast:["Daniel Radcliffe","Emma Watson"],desc:"Wizard begins.",poster:"https://image.tmdb.org/t/p/w500/wuMc08IPKEatf9rnMNXvIDxqP4W.jpg"},
+      {title:"The Lord of the Rings: The Fellowship of the Ring",genres:["fantasy"],year:2001,rating:8.8,cast:["Elijah Wood","Ian McKellen"],desc:"Epic journey.",poster:"https://image.tmdb.org/t/p/w500/6oom5QYQ2yQTMJIbnvbkBL9cHo6.jpg"},
+      {title:"Pirates of the Caribbean: The Curse of the Black Pearl",genres:["fantasy","action"],year:2003,rating:8.1,cast:["Johnny Depp","Orlando Bloom"],desc:"A blacksmith teams up with a pirate to rescue a kidnapped woman.",poster:"https://image.tmdb.org/t/p/w500/z8onk7LV9Mmw6zKz4hT6pzzvmvl.jpg"},
+      {title:"Doctor Strange",genres:["fantasy","superhero"],year:2016,rating:7.5,cast:["Benedict Cumberbatch"],desc:"A brilliant surgeon discovers the mystic arts.",poster:"https://image.tmdb.org/t/p/w500/uGBVj3bEbCoZbDjjl9wTxcygko1.jpg"},
+
+      {title:"The Godfather",genres:["crime","drama"],year:1972,rating:9.2,cast:["Marlon Brando","Al Pacino"],desc:"Mafia legacy.",poster:"https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg"},
+      {title:"Pulp Fiction",genres:["crime"],year:1994,rating:8.9,cast:["John Travolta","Samuel L. Jackson"],desc:"Interwoven crime stories.",poster:"https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg"},
+      {title:"Knives Out",genres:["mystery","comedy"],year:2019,rating:7.9,cast:["Daniel Craig","Ana de Armas"],desc:"Whodunit mystery.",poster:"https://image.tmdb.org/t/p/w500/pThyQovXQrw2m0s9x82twj48Jq4.jpg"},
+      {title:"Sherlock Holmes",genres:["mystery","action"],year:2009,rating:7.6,cast:["Robert Downey Jr.","Jude Law"],desc:"Detective adventure.",poster:"https://image.tmdb.org/t/p/w500/22ngurXbLqab7Sko6aTSdwOCe5W.jpg"},
+      {title:"Zodiac",genres:["crime","thriller"],year:2007,rating:7.7,cast:["Jake Gyllenhaal","Robert Downey Jr."],desc:"Serial killer investigation.",poster:"https://image.tmdb.org/t/p/w500/6YmeO4pB7XTh8P8F960O1uA14JO.jpg"},
+      {title:"Murder on the Orient Express",genres:["mystery","crime"],year:2017,rating:6.5,cast:["Kenneth Branagh","Penélope Cruz"],desc:"A detective investigates a murder on a luxury train.",poster:"https://image.tmdb.org/t/p/w500/iBlfxlw8qwtUS0fMNVcYb1pmLWA.jpg"}
+    ];
+
+    let currentMovies = [...movies];
+
+    function card(m) {
+      const safeMovie = JSON.stringify(m).replace(/'/g, "&apos;");
+      return `
+        <div class="movie-card min-w-[150px] cursor-pointer" onclick='openPopup(${safeMovie})'>
+          <img
+            src="${m.poster}"
+            alt="${m.title}"
+            class="w-[150px] h-[220px] object-cover rounded bg-zinc-800"
+            onerror="this.onerror=null;this.src='${posterFallback(m.title)}';"
+          >
+          <p class="text-xs mt-2 w-[150px] leading-4">${m.title}</p>
+        </div>
+      `;
+    }
+
+    function render(list = currentMovies) {
+      const genres = [...new Set(list.flatMap(m => m.genres))].sort();
+
+      document.getElementById("app").innerHTML = genres.map(g => `
+        <div>
+          <h2 class="mb-3 capitalize text-lg font-semibold">${g}</h2>
+          <div class="genre-row flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+            ${list.filter(m => m.genres.includes(g)).map(card).join("")}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function openPopup(m) {
+      document.getElementById("p-img").src = m.poster;
+      document.getElementById("p-img").onerror = function () {
+        this.src = posterFallback(m.title);
+      };
+
+      document.getElementById("p-title").innerText = m.title;
+      document.getElementById("p-meta").innerText =
+        `${m.year} • ${m.genres.join(", ")} • ⭐ ${m.rating}`;
+      document.getElementById("p-cast").innerText =
+        "Cast: " + m.cast.join(", ");
+      document.getElementById("p-desc").innerText = m.desc;
+
+      document.getElementById("popup").classList.remove("hidden");
+      document.getElementById("popup").classList.add("flex");
+    }
+
+    function closePopup() {
+      document.getElementById("popup").classList.add("hidden");
+      document.getElementById("popup").classList.remove("flex");
+    }
+
+    document.getElementById("search").addEventListener("input", e => {
+      const val = e.target.value.toLowerCase().trim();
+
+      if (!val) {
+        currentMovies = [...movies];
+        render(currentMovies);
+        return;
+      }
+
+      currentMovies = movies.filter(m =>
+        m.title.toLowerCase().includes(val) ||
+        m.genres.some(g => g.toLowerCase().includes(val)) ||
+        m.cast.some(c => c.toLowerCase().includes(val))
+      );
+
+      document.getElementById("app").innerHTML = `
+        <div>
+          <h2 class="text-lg font-semibold mb-3">Results</h2>
+          <div class="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+            ${
+              currentMovies.length
+                ? currentMovies.map(card).join("")
+                : `<p class="text-zinc-400">No movies found.</p>`
+            }
+          </div>
+        </div>
+      `;
+    });
+
+    render();
+  </script>
+</body>
+</html>
